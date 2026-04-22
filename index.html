@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>RE Distance & Lead Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0a0d14;
+    --surface: rgba(255,255,255,0.05);
+    --surface-hover: rgba(255,255,255,0.09);
+    --border: rgba(255,255,255,0.10);
+    --border-bright: rgba(255,255,255,0.20);
+    --gold: #c9a84c;
+    --gold-light: #e8c97a;
+    --text: #e8e6e0;
+    --muted: #7a7870;
+    --danger: #e05a5a;
+    --success: #5ab88a;
+    --blue: #5a9ae0;
+    --blur: blur(18px);
+    --radius: 16px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── BACKGROUND ── */
+  .bg-mesh {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 10%, rgba(201,168,76,0.10) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 80% 80%, rgba(90,154,224,0.08) 0%, transparent 55%),
+      radial-gradient(ellipse 50% 40% at 50% 50%, rgba(90,184,138,0.04) 0%, transparent 60%);
+  }
+  .bg-grid {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.025;
+    background-image: linear-gradient(rgba(201,168,76,0.8) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(201,168,76,0.8) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  /* ── LAYOUT ── */
+  .wrapper { position: relative; z-index: 1; max-width: 1280px; margin: 0 auto; padding: 0 24px 60px; }
+
+  /* ── HEADER ── */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 28px 0 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 36px;
+  }
+  .logo { display: flex; flex-direction: column; gap: 2px; }
+  .logo-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 28px; font-weight: 700; letter-spacing: 0.02em;
+    background: linear-gradient(120deg, var(--gold-light), var(--gold));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .logo-sub { font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); }
+  .stats-bar { display: flex; gap: 24px; }
+  .stat-pill {
+    background: var(--surface); border: 1px solid var(--border);
+    backdrop-filter: var(--blur); border-radius: 100px;
+    padding: 8px 18px; font-size: 12px; color: var(--muted);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .stat-pill b { color: var(--gold-light); font-weight: 500; font-size: 15px; }
+
+  /* ── GLASS CARD ── */
+  .glass {
+    background: var(--surface);
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .glass:hover { border-color: var(--border-bright); }
+
+  /* ── TABS ── */
+  .tabs { display: flex; gap: 4px; margin-bottom: 28px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 4px; width: fit-content; }
+  .tab {
+    padding: 9px 24px; border-radius: 9px; font-size: 13px; font-weight: 500;
+    cursor: pointer; border: none; background: transparent; color: var(--muted);
+    transition: all 0.2s; letter-spacing: 0.03em;
+  }
+  .tab.active { background: linear-gradient(135deg, var(--gold), #a07830); color: #0a0d14; }
+  .tab:hover:not(.active) { color: var(--text); background: var(--surface-hover); }
+
+  /* ── SEARCH PANEL ── */
+  .search-panel { padding: 28px; margin-bottom: 24px; }
+  .panel-label {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+  }
+  .panel-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .search-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+  .input-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 200px; }
+  .input-group label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  input, select {
+    background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+    border-radius: 10px; padding: 11px 14px; color: var(--text); font-family: 'DM Sans', sans-serif;
+    font-size: 14px; outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+    width: 100%;
+  }
+  input::placeholder { color: var(--muted); }
+  input:focus, select:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,168,76,0.12); }
+  select option { background: #1a1d24; color: var(--text); }
+
+  /* ── BUTTONS ── */
+  .btn {
+    padding: 11px 22px; border-radius: 10px; font-family: 'DM Sans', sans-serif;
+    font-size: 13px; font-weight: 500; cursor: pointer; border: none;
+    transition: all 0.2s; letter-spacing: 0.04em; white-space: nowrap;
+  }
+  .btn-gold {
+    background: linear-gradient(135deg, var(--gold-light), var(--gold));
+    color: #0a0d14;
+  }
+  .btn-gold:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 6px 24px rgba(201,168,76,0.25); }
+  .btn-ghost { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
+  .btn-ghost:hover { background: var(--surface-hover); border-color: var(--border-bright); }
+  .btn-danger { background: rgba(224,90,90,0.15); border: 1px solid rgba(224,90,90,0.3); color: var(--danger); }
+  .btn-danger:hover { background: rgba(224,90,90,0.25); }
+  .btn-sm { padding: 6px 14px; font-size: 12px; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+  /* ── RESULTS ── */
+  .results-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .results-title { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 600; }
+  .filter-row { display: flex; gap: 10px; align-items: center; }
+  .threshold-wrap { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+  .threshold-wrap input[type=range] {
+    width: 100px; padding: 0; border: none; background: transparent; box-shadow: none;
+    accent-color: var(--gold);
+  }
+  .threshold-wrap input[type=range]:focus { box-shadow: none; }
+
+  /* ── RESULT CARDS ── */
+  .results-grid { display: grid; gap: 12px; }
+  .result-card {
+    display: grid; grid-template-columns: 48px 1fr auto;
+    align-items: center; gap: 16px;
+    padding: 16px 20px; border-radius: var(--radius);
+    background: var(--surface); border: 1px solid var(--border);
+    transition: all 0.25s; cursor: default;
+    animation: slideIn 0.3s ease both;
+  }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .result-card:hover { background: var(--surface-hover); border-color: var(--border-bright); transform: translateY(-1px); }
+  .result-card.rank-1 { border-color: rgba(201,168,76,0.4); background: rgba(201,168,76,0.05); }
+  .result-card.rank-2 { border-color: rgba(192,192,192,0.3); }
+  .result-card.rank-3 { border-color: rgba(205,127,50,0.3); }
+  .rank-badge {
+    width: 48px; height: 48px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 700;
+    background: rgba(255,255,255,0.05); color: var(--muted);
+    flex-shrink: 0;
+  }
+  .rank-1 .rank-badge { background: rgba(201,168,76,0.15); color: var(--gold-light); }
+  .rank-2 .rank-badge { background: rgba(192,192,192,0.1); color: #c0c0c0; }
+  .rank-3 .rank-badge { background: rgba(205,127,50,0.1); color: #cd7f32; }
+  .card-info { min-width: 0; }
+  .card-name { font-size: 15px; font-weight: 500; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card-meta { font-size: 12px; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; }
+  .card-meta span { display: flex; align-items: center; gap: 4px; }
+  .card-right { text-align: right; flex-shrink: 0; }
+  .dist-badge {
+    font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600;
+    color: var(--gold-light); line-height: 1;
+  }
+  .dist-unit { font-size: 11px; color: var(--muted); letter-spacing: 0.05em; }
+  .dist-type { font-size: 10px; color: var(--muted); opacity: 0.7; }
+
+  /* ── ADD REALTOR PANEL ── */
+  .add-panel { padding: 28px; }
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px; }
+  .form-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+  /* ── REALTOR LIST ── */
+  .realtor-table { width: 100%; border-collapse: collapse; }
+  .realtor-table th {
+    text-align: left; font-size: 11px; letter-spacing: 0.10em; text-transform: uppercase;
+    color: var(--muted); padding: 10px 14px; border-bottom: 1px solid var(--border);
+    font-weight: 400;
+  }
+  .realtor-table td { padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 13px; }
+  .realtor-table tr:last-child td { border-bottom: none; }
+  .realtor-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: rgba(201,168,76,0.12); border: 1px solid rgba(201,168,76,0.2);
+    color: var(--gold); border-radius: 6px; padding: 2px 8px; font-size: 11px;
+  }
+  .empty-state {
+    text-align: center; padding: 60px 20px; color: var(--muted);
+    font-family: 'Cormorant Garamond', serif; font-size: 18px;
+  }
+  .empty-state small { display: block; font-family: 'DM Sans', sans-serif; font-size: 12px; margin-top: 6px; }
+
+  /* ── LOADING ── */
+  .spinner {
+    width: 18px; height: 18px; border: 2px solid rgba(201,168,76,0.3);
+    border-top-color: var(--gold); border-radius: 50%; animation: spin 0.7s linear infinite;
+    display: inline-block;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-row { display: flex; align-items: center; gap: 10px; padding: 24px; color: var(--muted); font-size: 13px; justify-content: center; }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed; bottom: 28px; right: 28px; z-index: 9999;
+    padding: 12px 20px; border-radius: 12px; font-size: 13px;
+    backdrop-filter: blur(20px); border: 1px solid var(--border);
+    background: rgba(20,24,34,0.92);
+    transform: translateY(20px); opacity: 0; transition: all 0.3s;
+    pointer-events: none; max-width: 320px;
+  }
+  #toast.show { transform: none; opacity: 1; }
+  #toast.success { border-color: rgba(90,184,138,0.4); color: var(--success); }
+  #toast.error { border-color: rgba(224,90,90,0.4); color: var(--danger); }
+  #toast.info { border-color: rgba(90,154,224,0.4); color: var(--blue); }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,5,0.75); backdrop-filter: blur(6px);
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #111520; border: 1px solid var(--border-bright);
+    border-radius: 20px; padding: 32px; width: 100%; max-width: 480px;
+    animation: modalIn 0.25s ease;
+  }
+  @keyframes modalIn { from { opacity: 0; transform: scale(0.96) translateY(10px); } to { opacity: 1; transform: none; } }
+  .modal h2 { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; margin-bottom: 20px; }
+  .modal .form-grid { grid-template-columns: 1fr; }
+
+  /* ── SECTION VISIBLE ── */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* ── MISC ── */
+  .divider { height: 1px; background: var(--border); margin: 20px 0; }
+  .chip {
+    display: inline-flex; align-items: center;
+    background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+    border-radius: 100px; padding: 4px 12px; font-size: 11px; color: var(--muted);
+    gap: 6px;
+  }
+  .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .dot-gold { background: var(--gold); }
+  .dot-green { background: var(--success); }
+  .dot-red { background: var(--danger); }
+
+  .note-box {
+    background: rgba(90,154,224,0.07); border: 1px solid rgba(90,154,224,0.2);
+    border-radius: 10px; padding: 12px 16px; font-size: 12px; color: rgba(144,188,230,0.85);
+    margin-top: 16px; line-height: 1.6;
+  }
+
+  @media (max-width: 640px) {
+    header { flex-direction: column; align-items: flex-start; gap: 16px; }
+    .stats-bar { flex-wrap: wrap; }
+    .result-card { grid-template-columns: 40px 1fr; }
+    .card-right { display: none; }
+    .search-row { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+<div class="bg-mesh"></div>
+<div class="bg-grid"></div>
+
+<div class="wrapper">
+  <!-- HEADER -->
+  <header>
+    <div class="logo">
+      <div class="logo-title">RE Distance Manager</div>
+      <div class="logo-sub">Real Estate Lead Intelligence Platform</div>
+    </div>
+    <div class="stats-bar">
+      <div class="stat-pill"><span class="dot dot-gold"></span> Realtors <b id="stat-count">0</b></div>
+      <div class="stat-pill"><span class="dot dot-green"></span> Last Search <b id="stat-last">—</b></div>
+    </div>
+  </header>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('search')">🔍 Distance Search</button>
+    <button class="tab" onclick="switchTab('realtors')">👥 Manage Realtors</button>
+    <button class="tab" onclick="switchTab('add')">➕ Add Realtor</button>
+  </div>
+
+  <!-- ══════════════ SEARCH TAB ══════════════ -->
+  <div id="tab-search" class="section active">
+    <div class="glass search-panel">
+      <div class="panel-label">Target Property Address</div>
+      <div class="search-row">
+        <div class="input-group" style="flex:2">
+          <label>Destination Address</label>
+          <input type="text" id="search-addr" placeholder="e.g. 1111 Pine Grove Dr, Raleigh, NC 27527" />
+        </div>
+        <div class="input-group" style="flex:0 0 160px">
+          <label>Distance Threshold</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input type="number" id="threshold" value="150" min="1" max="5000" style="width:80px"/>
+            <span style="font-size:12px;color:var(--muted);white-space:nowrap">miles max</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-shrink:0">
+          <button class="btn btn-gold" onclick="runSearch()" id="search-btn">Search Distances</button>
+          <button class="btn btn-ghost" onclick="clearResults()">Clear</button>
+        </div>
+      </div>
+      <div class="note-box">
+        ℹ️ Distance is calculated as straight-line (as-the-crow-flies) mileage using geocoded coordinates via OpenStreetMap — <b>no API key required</b>. For driving distances, connect a Google Maps or MapBox API key in settings.
+      </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div id="results-wrap" style="display:none">
+      <div class="results-header">
+        <div>
+          <div class="results-title">Closest Matches</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:3px">Ranked nearest to farthest · <span id="results-count">0</span> within threshold</div>
+        </div>
+        <div class="filter-row">
+          <div class="chip"><span class="dot dot-gold"></span><span id="target-label">—</span></div>
+        </div>
+      </div>
+      <div id="loading-row" class="loading-row" style="display:none">
+        <div class="spinner"></div> Geocoding addresses & calculating distances…
+      </div>
+      <div id="results-grid" class="results-grid"></div>
+    </div>
+
+    <div id="no-realtors-msg" style="display:none">
+      <div class="empty-state glass" style="padding:48px">
+        <div>No realtors in database yet.</div>
+        <small>Switch to "Add Realtor" tab to add your first contact.</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ MANAGE REALTORS TAB ══════════════ -->
+  <div id="tab-realtors" class="section">
+    <div class="glass" style="padding:24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div class="panel-label" style="margin-bottom:0">Realtor Database</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="exportData()">⬇ Export JSON</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('import-file').click()">⬆ Import JSON</button>
+          <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)"/>
+        </div>
+      </div>
+      <div id="realtor-list-wrap">
+        <div class="empty-state">Loading…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ ADD REALTOR TAB ══════════════ -->
+  <div id="tab-add" class="section">
+    <div class="glass add-panel">
+      <div class="panel-label">New Realtor Profile</div>
+      <div class="form-grid">
+        <div class="input-group">
+          <label>Full Name *</label>
+          <input type="text" id="f-name" placeholder="Jane Smith"/>
+        </div>
+        <div class="input-group">
+          <label>Company / Brokerage</label>
+          <input type="text" id="f-company" placeholder="Keller Williams Realty"/>
+        </div>
+        <div class="input-group">
+          <label>Phone</label>
+          <input type="tel" id="f-phone" placeholder="(919) 555-0100"/>
+        </div>
+        <div class="input-group">
+          <label>Email</label>
+          <input type="email" id="f-email" placeholder="jane@kwrealty.com"/>
+        </div>
+        <div class="input-group">
+          <label>Service Area / City *</label>
+          <input type="text" id="f-area" placeholder="Raleigh, NC"/>
+        </div>
+        <div class="input-group">
+          <label>Zip Code *</label>
+          <input type="text" id="f-zip" placeholder="27527"/>
+        </div>
+        <div class="input-group">
+          <label>County</label>
+          <input type="text" id="f-county" placeholder="Wake County"/>
+        </div>
+        <div class="input-group">
+          <label>Specialization</label>
+          <select id="f-spec">
+            <option value="">Select…</option>
+            <option>Residential</option>
+            <option>Commercial</option>
+            <option>Luxury</option>
+            <option>Land/Lots</option>
+            <option>Investment</option>
+            <option>New Construction</option>
+            <option>Relocation</option>
+          </select>
+        </div>
+        <div class="input-group" style="grid-column: 1 / -1">
+          <label>Notes</label>
+          <input type="text" id="f-notes" placeholder="Any additional notes…"/>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" onclick="clearForm()">Clear</button>
+        <button class="btn btn-gold" onclick="addRealtor()">Save Realtor Profile</button>
+      </div>
+    </div>
+
+    <!-- SEED DATA -->
+    <div class="glass" style="margin-top:16px;padding:20px">
+      <div class="panel-label">Quick Seed — Demo Data</div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Load sample realtors covering NC counties to demo the search.</p>
+      <button class="btn btn-ghost btn-sm" onclick="seedDemo()">Load Demo Realtors</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <h2>Edit Realtor Profile</h2>
+    <input type="hidden" id="edit-id"/>
+    <div class="form-grid">
+      <div class="input-group"><label>Full Name</label><input type="text" id="e-name"/></div>
+      <div class="input-group"><label>Company</label><input type="text" id="e-company"/></div>
+      <div class="input-group"><label>Phone</label><input type="tel" id="e-phone"/></div>
+      <div class="input-group"><label>Email</label><input type="email" id="e-email"/></div>
+      <div class="input-group"><label>Service Area / City</label><input type="text" id="e-area"/></div>
+      <div class="input-group"><label>Zip Code</label><input type="text" id="e-zip"/></div>
+      <div class="input-group"><label>County</label><input type="text" id="e-county"/></div>
+      <div class="input-group"><label>Specialization</label>
+        <select id="e-spec">
+          <option value="">Select…</option>
+          <option>Residential</option><option>Commercial</option><option>Luxury</option>
+          <option>Land/Lots</option><option>Investment</option><option>New Construction</option><option>Relocation</option>
+        </select>
+      </div>
+      <div class="input-group"><label>Notes</label><input type="text" id="e-notes"/></div>
+    </div>
+    <div class="form-actions" style="margin-top:20px">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-gold" onclick="saveEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════
+//  DATA LAYER
+// ══════════════════════════════════════
+const STORAGE_KEY = 'reDistanceRealtors';
+let realtors = [];
+
+function load() {
+  try { realtors = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch { realtors = []; }
+  updateStats();
+}
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(realtors));
+  updateStats();
+}
+
+function updateStats() {
+  document.getElementById('stat-count').textContent = realtors.length;
+}
+
+// ══════════════════════════════════════
+//  TABS
+// ══════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  const tabs = ['search','realtors','add'];
+  const idx = tabs.indexOf(name);
+  document.querySelectorAll('.tab')[idx].classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+  if (name === 'realtors') renderRealtorList();
+}
+
+// ══════════════════════════════════════
+//  GEOCODING  (OpenStreetMap Nominatim)
+// ══════════════════════════════════════
+const geocodeCache = {};
+
+async function geocode(query) {
+  if (geocodeCache[query]) return geocodeCache[query];
+  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`;
+  try {
+    const resp = await fetch(url, { headers: { 'Accept-Language': 'en-US,en' } });
+    const data = await resp.json();
+    if (data && data.length > 0) {
+      const result = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon), display: data[0].display_name };
+      geocodeCache[query] = result;
+      return result;
+    }
+  } catch(e) { console.warn('Geocode failed for', query, e); }
+  return null;
+}
+
+// ══════════════════════════════════════
+//  HAVERSINE DISTANCE  (miles)
+// ══════════════════════════════════════
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 3958.8; // Earth radius in miles
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R * 2 * Math.asin(Math.sqrt(a));
+}
+
+// ══════════════════════════════════════
+//  SEARCH
+// ══════════════════════════════════════
+async function runSearch() {
+  const addr = document.getElementById('search-addr').value.trim();
+  const threshold = parseFloat(document.getElementById('threshold').value) || 999999;
+
+  if (!addr) { toast('Please enter a target address.', 'error'); return; }
+  if (realtors.length === 0) {
+    document.getElementById('no-realtors-msg').style.display = 'block';
+    document.getElementById('results-wrap').style.display = 'none';
+    toast('No realtors in database. Add some first!', 'error'); return;
+  }
+
+  document.getElementById('no-realtors-msg').style.display = 'none';
+  document.getElementById('results-wrap').style.display = 'block';
+  document.getElementById('results-grid').innerHTML = '';
+  document.getElementById('loading-row').style.display = 'flex';
+  document.getElementById('search-btn').disabled = true;
+  document.getElementById('target-label').textContent = addr.substring(0,35) + (addr.length>35?'…':'');
+
+  const targetCoord = await geocode(addr);
+  if (!targetCoord) {
+    toast('Could not geocode target address. Try adding city/state.', 'error');
+    document.getElementById('loading-row').style.display = 'none';
+    document.getElementById('search-btn').disabled = false;
+    return;
+  }
+
+  // Geocode all realtors concurrently
+  const withDist = await Promise.all(realtors.map(async r => {
+    const query = [r.area, r.zip, 'USA'].filter(Boolean).join(', ');
+    const coord = await geocode(query);
+    if (!coord) return { ...r, dist: null };
+    const dist = haversine(targetCoord.lat, targetCoord.lon, coord.lat, coord.lon);
+    return { ...r, dist: Math.round(dist * 10) / 10, coord };
+  }));
+
+  document.getElementById('loading-row').style.display = 'none';
+
+  // Filter & sort
+  const filtered = withDist
+    .filter(r => r.dist !== null && r.dist <= threshold)
+    .sort((a,b) => a.dist - b.dist);
+
+  document.getElementById('results-count').textContent = filtered.length;
+  document.getElementById('stat-last').textContent = addr.split(',')[0];
+
+  if (filtered.length === 0) {
+    document.getElementById('results-grid').innerHTML = `
+      <div class="empty-state glass" style="padding:40px">
+        <div>No realtors within ${threshold} miles.</div>
+        <small>Try increasing the distance threshold, or check that realtors have valid zip codes / cities.</small>
+      </div>`;
+  } else {
+    filtered.forEach((r, i) => {
+      const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : '';
+      const card = document.createElement('div');
+      card.className = `result-card ${rankClass}`;
+      card.style.animationDelay = `${i * 0.04}s`;
+      card.innerHTML = `
+        <div class="rank-badge">${i+1}</div>
+        <div class="card-info">
+          <div class="card-name">${esc(r.name)}</div>
+          <div class="card-meta">
+            ${r.company ? `<span>🏢 ${esc(r.company)}</span>` : ''}
+            <span>📍 ${esc(r.area)}${r.zip ? ' · '+esc(r.zip) : ''}</span>
+            ${r.county ? `<span>🗺 ${esc(r.county)}</span>` : ''}
+            ${r.spec ? `<span class="tag">${esc(r.spec)}</span>` : ''}
+          </div>
+          <div class="card-meta" style="margin-top:4px">
+            ${r.phone ? `<span>📞 ${esc(r.phone)}</span>` : ''}
+            ${r.email ? `<span>✉️ ${esc(r.email)}</span>` : ''}
+          </div>
+        </div>
+        <div class="card-right">
+          <div class="dist-badge">${r.dist}</div>
+          <div class="dist-unit">MILES</div>
+          <div class="dist-type">straight-line</div>
+        </div>`;
+      document.getElementById('results-grid').appendChild(card);
+    });
+  }
+
+  document.getElementById('search-btn').disabled = false;
+}
+
+function clearResults() {
+  document.getElementById('results-wrap').style.display = 'none';
+  document.getElementById('no-realtors-msg').style.display = 'none';
+  document.getElementById('search-addr').value = '';
+}
+
+// ══════════════════════════════════════
+//  ADD REALTOR
+// ══════════════════════════════════════
+function addRealtor() {
+  const name = document.getElementById('f-name').value.trim();
+  const area = document.getElementById('f-area').value.trim();
+  const zip  = document.getElementById('f-zip').value.trim();
+  if (!name) { toast('Name is required.', 'error'); return; }
+  if (!area && !zip) { toast('Service area or zip code is required.', 'error'); return; }
+
+  const r = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+    name, area, zip,
+    company: document.getElementById('f-company').value.trim(),
+    phone:   document.getElementById('f-phone').value.trim(),
+    email:   document.getElementById('f-email').value.trim(),
+    county:  document.getElementById('f-county').value.trim(),
+    spec:    document.getElementById('f-spec').value,
+    notes:   document.getElementById('f-notes').value.trim(),
+    added:   new Date().toLocaleDateString(),
+  };
+  realtors.push(r);
+  save();
+  clearForm();
+  toast(`${r.name} added successfully!`, 'success');
+  updateStats();
+}
+
+function clearForm() {
+  ['f-name','f-company','f-phone','f-email','f-area','f-zip','f-county','f-notes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-spec').value = '';
+}
+
+// ══════════════════════════════════════
+//  REALTOR LIST
+// ══════════════════════════════════════
+function renderRealtorList() {
+  const wrap = document.getElementById('realtor-list-wrap');
+  if (realtors.length === 0) {
+    wrap.innerHTML = `<div class="empty-state"><div>No realtors yet.</div><small>Use the "Add Realtor" tab to build your database.</small></div>`;
+    return;
+  }
+  wrap.innerHTML = `
+    <table class="realtor-table">
+      <thead>
+        <tr>
+          <th>Name</th><th>Company</th><th>Service Area</th><th>Zip</th><th>County</th><th>Phone</th><th>Spec</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="realtor-tbody"></tbody>
+    </table>`;
+  const tbody = document.getElementById('realtor-tbody');
+  realtors.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><b>${esc(r.name)}</b></td>
+      <td>${esc(r.company||'—')}</td>
+      <td>${esc(r.area||'—')}</td>
+      <td>${esc(r.zip||'—')}</td>
+      <td>${esc(r.county||'—')}</td>
+      <td>${r.phone ? `<a href="tel:${esc(r.phone)}" style="color:var(--gold);text-decoration:none">${esc(r.phone)}</a>` : '—'}</td>
+      <td>${r.spec ? `<span class="tag">${esc(r.spec)}</span>` : '—'}</td>
+      <td>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-ghost btn-sm" onclick="openEdit('${r.id}')">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteRealtor('${r.id}')">Delete</button>
+        </div>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function deleteRealtor(id) {
+  if (!confirm('Delete this realtor?')) return;
+  realtors = realtors.filter(r => r.id !== id);
+  save();
+  renderRealtorList();
+  toast('Realtor removed.', 'info');
+}
+
+// ══════════════════════════════════════
+//  EDIT MODAL
+// ══════════════════════════════════════
+function openEdit(id) {
+  const r = realtors.find(x => x.id === id);
+  if (!r) return;
+  document.getElementById('edit-id').value = id;
+  document.getElementById('e-name').value = r.name || '';
+  document.getElementById('e-company').value = r.company || '';
+  document.getElementById('e-phone').value = r.phone || '';
+  document.getElementById('e-email').value = r.email || '';
+  document.getElementById('e-area').value = r.area || '';
+  document.getElementById('e-zip').value = r.zip || '';
+  document.getElementById('e-county').value = r.county || '';
+  document.getElementById('e-spec').value = r.spec || '';
+  document.getElementById('e-notes').value = r.notes || '';
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function closeModal() { document.getElementById('edit-modal').classList.remove('open'); }
+
+function saveEdit() {
+  const id = document.getElementById('edit-id').value;
+  const idx = realtors.findIndex(r => r.id === id);
+  if (idx < 0) return;
+  realtors[idx] = { ...realtors[idx],
+    name:    document.getElementById('e-name').value.trim(),
+    company: document.getElementById('e-company').value.trim(),
+    phone:   document.getElementById('e-phone').value.trim(),
+    email:   document.getElementById('e-email').value.trim(),
+    area:    document.getElementById('e-area').value.trim(),
+    zip:     document.getElementById('e-zip').value.trim(),
+    county:  document.getElementById('e-county').value.trim(),
+    spec:    document.getElementById('e-spec').value,
+    notes:   document.getElementById('e-notes').value.trim(),
+  };
+  save();
+  closeModal();
+  renderRealtorList();
+  toast('Profile updated.', 'success');
+}
+
+// ══════════════════════════════════════
+//  IMPORT / EXPORT
+// ══════════════════════════════════════
+function exportData() {
+  const blob = new Blob([JSON.stringify(realtors, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'realtors_export.json';
+  a.click();
+  toast('Export downloaded!', 'success');
+}
+
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!Array.isArray(data)) throw new Error('Not an array');
+      const count = data.length;
+      realtors = [...realtors, ...data];
+      save();
+      renderRealtorList();
+      toast(`Imported ${count} realtors!`, 'success');
+    } catch { toast('Invalid JSON file.', 'error'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+// ══════════════════════════════════════
+//  DEMO SEED DATA
+// ══════════════════════════════════════
+function seedDemo() {
+  const demo = [
+    { name:'Marcus Reynolds',  company:'Coastal Realty NC', phone:'(910) 555-0111', email:'m.reynolds@coastalnc.com', area:'Wilmington, NC', zip:'28401', county:'New Hanover County', spec:'Residential', notes:'Beach specialist' },
+    { name:'Priya Anand',      company:'Triangle Properties', phone:'(919) 555-0182', email:'pranand@triprop.com', area:'Raleigh, NC', zip:'27527', county:'Wake County', spec:'New Construction', notes:'Top 100 agent 2024' },
+    { name:'Derek Holloway',   company:'Blue Ridge Realty', phone:'(828) 555-0143', email:'derek@blueridgere.com', area:'Asheville, NC', zip:'28801', county:'Buncombe County', spec:'Luxury', notes:'Mountain properties' },
+    { name:'Sandra Wu',        company:'Piedmont Homes', phone:'(336) 555-0199', email:'swu@piedmonthomes.com', area:'Greensboro, NC', zip:'27401', county:'Guilford County', spec:'Investment', notes:'Multi-family expert' },
+    { name:'James Okafor',     company:'Coastal Partners', phone:'(910) 555-0175', email:'jokafor@coastalpart.com', area:'Jacksonville, NC', zip:'28540', county:'Onslow County', spec:'Relocation', notes:'Military relocation specialist' },
+    { name:'Angela Torres',    company:'Charlotte Premier', phone:'(704) 555-0122', email:'atorres@cltpremier.com', area:'Charlotte, NC', zip:'28202', county:'Mecklenburg County', spec:'Commercial', notes:'' },
+    { name:'Brian Whitfield',  company:'Outer Banks Realty', phone:'(252) 555-0131', email:'bwhitfield@obxre.com', area:'Kill Devil Hills, NC', zip:'27948', county:'Dare County', spec:'Residential', notes:'Vacation/investment rental' },
+    { name:'Tonya Miller',     company:'Fayetteville Homes', phone:'(910) 555-0164', email:'tmiller@fvhomes.com', area:'Fayetteville, NC', zip:'28301', county:'Cumberland County', spec:'Residential', notes:'' },
+  ];
+  demo.forEach(d => { realtors.push({ id: Date.now().toString(36)+Math.random().toString(36).slice(2), added: new Date().toLocaleDateString(), ...d }); });
+  save();
+  toast(`${demo.length} demo realtors loaded!`, 'success');
+}
+
+// ══════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════
+let toastTimer;
+function toast(msg, type = 'info') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `show ${type}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
+}
+
+// ══════════════════════════════════════
+//  UTILS
+// ══════════════════════════════════════
+function esc(str) {
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Close modal on overlay click
+document.getElementById('edit-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+
+// Enter key triggers search
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('search-addr').addEventListener('keydown', e => { if (e.key==='Enter') runSearch(); });
+});
+
+// INIT
+load();
+</script>
+</body>
+</html>
